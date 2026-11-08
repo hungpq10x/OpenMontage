@@ -21,6 +21,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+from tools.subprocess_utils import run_with_timeout
+
 
 def _load_dotenv() -> None:
     """Load .env into os.environ once at import time.
@@ -426,7 +428,10 @@ class BaseTool(ABC):
             if exe:
                 resolved_cmd[0] = exe
         try:
-            return subprocess.run(
+            # run_with_timeout == subprocess.run, except that on Windows a
+            # timeout also kills grandchildren of .cmd shims (npx, mmdc, ...)
+            # instead of hanging on their inherited pipes.
+            return run_with_timeout(
                 resolved_cmd,
                 capture_output=True,
                 text=True,

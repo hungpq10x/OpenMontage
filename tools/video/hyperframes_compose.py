@@ -38,6 +38,7 @@ from tools.base_tool import (
     ToolStatus,
     ToolTier,
 )
+from tools.subprocess_utils import run_with_timeout
 
 
 log = logging.getLogger("hyperframes_compose")
@@ -291,7 +292,7 @@ class HyperFramesCompose(BaseTool):
             return cls._npm_resolve_cache
 
         try:
-            proc = subprocess.run(
+            proc = run_with_timeout(
                 [npm, "view", cls._NPM_PACKAGE, "version"],
                 capture_output=True,
                 text=True,
@@ -341,7 +342,10 @@ class HyperFramesCompose(BaseTool):
             return cls._cli_probe_cache
 
         try:
-            proc = subprocess.run(
+            # `npx` is a .cmd shim on Windows: plain subprocess.run would kill
+            # only cmd.exe on timeout and then block forever on the orphaned
+            # node's pipes. run_with_timeout kills the whole tree.
+            proc = run_with_timeout(
                 [npx, "--yes", cls._NPM_PACKAGE, "doctor", "--json"],
                 capture_output=True,
                 text=True,
@@ -1368,7 +1372,7 @@ class HyperFramesCompose(BaseTool):
             if resolved:
                 cmd[0] = resolved
         try:
-            return subprocess.run(
+            return run_with_timeout(
                 cmd,
                 capture_output=True,
                 text=True,
